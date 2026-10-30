@@ -40,6 +40,8 @@ jobs:
           echo "RULESET_EXIT=$ruleset_rc" >> "$GITHUB_STEP_SUMMARY"
           echo "STAGING_EXIT=$staging_rc" >> "$GITHUB_STEP_SUMMARY"
           echo "Static inspection only; live denial is not proven." >> "$GITHUB_STEP_SUMMARY"
+          # Diagnose whether the failure is a real bypass actor or missing API field.
+          python -c 'import json,os,sys; sys.path.insert(0,"scripts"); import audit_github_gate as g; x=g._fetch_json("https://api.github.com/repos/abdelrahman-eladwy/scanproof-gate-lab/rulesets/26224149",os.environ.get("GH_TOKEN")); print("BYPASS_ACTORS_OBSERVATION:",json.dumps(x.get("bypass_actors","MISSING")))'
           # The result files carry explicit PASS/FAIL/INDETERMINATE.
           # Failures are expected when settings or read permissions are missing.
           exit 0
