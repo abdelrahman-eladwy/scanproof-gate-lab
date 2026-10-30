@@ -1,0 +1,6 @@
+# Proposal: activate via a GitHub ruleset requiring code-owner review.
+# This file alone does not enforce approvals; verify eladwy22 has write access.
+/.github/workflows/ @eladwy22
+/.github/CODEOWNERS @eladwy22
+/.scanproof/ @eladwy22
+/.semgrep/ @eladwy22
