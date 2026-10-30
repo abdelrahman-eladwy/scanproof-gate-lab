@@ -1,0 +1,52 @@
+# Observational audit, not a required merge status or release certification.
+# Uses reviewed E2E audit scripts pinned to an exact public source commit.
+name: lab-protection-observation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/lab-protection-observation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pinned read-only auditor source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: abdelrahman-eladwy/scanproof-e2e
+          ref: afe486d49fc43f38d41ea7b3e6bcb3010de879d0
+          persist-credentials: false
+      - name: Inspect main ruleset and staging configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set +e
+          mkdir -p evidence
+          python scripts/audit_github_gate.py \
+            --repo abdelrahman-eladwy/scanproof-gate-lab \
+            --branch main --check "ScanProof verification" --app-id 15368 \
+            --output evidence/ruleset.json
+          ruleset_rc=$?
+          python scripts/audit_github_environment.py \
+            --repo abdelrahman-eladwy/scanproof-gate-lab \
+            --branch main --environment staging \
+            --output evidence/staging.json
+          staging_rc=$?
+          echo "RULESET_EXIT=$ruleset_rc" >> "$GITHUB_STEP_SUMMARY"
+          echo "STAGING_EXIT=$staging_rc" >> "$GITHUB_STEP_SUMMARY"
+          echo "Static inspection only; live denial is not proven." >> "$GITHUB_STEP_SUMMARY"
+          # The result files carry explicit PASS/FAIL/INDETERMINATE.
+          # Failures are expected when settings or read permissions are missing.
+          exit 0
+      - name: Retain read-only configuration observations
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: lab-protection-observation
+          path: evidence/
+          if-no-files-found: error
