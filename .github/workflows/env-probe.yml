@@ -1,0 +1,15 @@
+# Trial 4 (#13): can an unprotected branch deploy to `staging`?
+# Expected if the branch policy holds: job rejected by environment protection.
+# If it reaches "waiting for review", REJECT the deployment; do not approve.
+name: env-probe
+on:
+  push:
+    branches: [lab/env-probe]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - run: echo "env-probe marker run=$GITHUB_RUN_ID ref=$GITHUB_REF sha=$GITHUB_SHA"
