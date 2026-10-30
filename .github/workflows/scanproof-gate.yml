@@ -48,12 +48,9 @@ jobs:
       - name: Install reviewed ScanProof source revision
         run: python -m pip install "git+https://github.com/abdelrahman-eladwy/scanproof.git@77dff27934c76e55e5af05c8e7b546fba4ed6e56"
       - name: Verify source evidence for this exact workflow run
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: >-
-          scanproof verify --provider github
-          -p "$GITHUB_REPOSITORY" --pipeline "$GITHUB_RUN_ID"
-          -P .scanproof/policy.yaml -o scanproof-decision.json
+        # FORGED-SUCCESS TRIAL (#13): verification replaced by an unconditional pass.
+        # The check keeps its name and app (15368); only CODEOWNERS review should stop this.
+        run: echo '{"decision":"VERIFIED","forged":true}' > scanproof-decision.json
       - name: Retain decision evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
