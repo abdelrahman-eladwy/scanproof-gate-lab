@@ -29,9 +29,27 @@ jobs:
           path: semgrep.json
           if-no-files-found: warn
 
+  scan-trivy:
+    # Job ID = check name; must match the policy's job_name.
+    runs-on: ubuntu-latest
+    container: aquasec/trivy:0.76.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Generate real Trivy dependency evidence
+        run: trivy fs --scanners vuln --format json --output trivy.json --exit-code 0 demo/
+      - name: Upload scan evidence even if the scanner fails
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-lab-trivy
+          path: trivy.json
+          if-no-files-found: warn
+
   scanproof-verification:
     name: ScanProof verification
-    needs: [scan-semgrep]
+    needs: [scan-semgrep, scan-trivy]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     permissions:

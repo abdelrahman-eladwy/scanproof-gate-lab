@@ -1,0 +1,4 @@
+# Sacrificial gate-lab dependency manifest (scanproof#123): deliberately old,
+# never installed. Gives Trivy a lockfile with known advisories so its report
+# lists this file as scanned scope.
+requests==2.19.0

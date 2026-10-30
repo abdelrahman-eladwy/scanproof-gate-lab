@@ -29,11 +29,13 @@ class SignedGateContract(unittest.TestCase):
         self.assertEqual(list(self.on), ["pull_request_target"])
         self.assertEqual(self.wf["permissions"], {})
 
-    def test_pr_code_is_checked_out_only_in_the_secretless_scan_job(self):
+    def test_pr_code_is_checked_out_only_in_secretless_scan_jobs(self):
         head_ref = "github.event.pull_request.head.sha"
+        scan_jobs = {n for n in self.jobs if n.startswith("scan-")}
+        self.assertEqual(scan_jobs, {"scan-semgrep", "scan-trivy"})
         for name, job in self.jobs.items():
             steps = yaml.safe_dump(job.get("steps", []))
-            if name == "scan-semgrep":
+            if name in scan_jobs:
                 self.assertIn(head_ref, steps)
                 self.assertNotIn("environment", job)
                 self.assertEqual(job["permissions"], {"contents": "read"})
@@ -47,11 +49,34 @@ class SignedGateContract(unittest.TestCase):
     def test_nothing_from_the_pr_is_executed(self):
         scan = self.jobs["scan-semgrep"]
         runs = [s["run"] for s in scan["steps"] if "run" in s]
-        self.assertEqual(len(runs), 1)
-        self.assertTrue(runs[0].startswith("semgrep scan --config .semgrep/rules.yml"))
-        self.assertIn(" pr/demo/", runs[0])
+        self.assertEqual(len(runs), 2)
+        self.assertEqual(runs[0], "find pr -name .semgrepignore -type f -print -delete")
+        self.assertTrue(runs[1].startswith("semgrep scan --config .semgrep/rules.yml"))
+        self.assertIn(" pr/demo/", runs[1])
         for step in scan["steps"]:
             self.assertFalse(str(step.get("uses", "")).startswith("./"))
+
+    def test_pr_cannot_narrow_scan_scope(self):
+        # scanproof#123: nested .semgrepignore hides files; # nosemgrep drops findings.
+        steps = self.jobs["scan-semgrep"]["steps"]
+        names = [s.get("name", "") for s in steps]
+        neutralise = names.index("Neutralise PR-supplied scope narrowing (scanproof#123)")
+        scan = names.index("Scan PR code with the base branch's rules")
+        self.assertLess(neutralise, scan)
+        self.assertIn("--disable-nosem", steps[scan]["run"])
+        self.assertNotIn("--config pr", steps[scan]["run"])
+
+    def test_trivy_scope_is_base_owned_and_pr_is_data_only(self):
+        runs = [s["run"] for s in self.jobs["scan-trivy"]["steps"] if "run" in s]
+        self.assertEqual(len(runs), 2)
+        self.assertTrue(runs[0].startswith("find pr \\( -name \".trivyignore*\""))
+        self.assertIn('-name "trivy.yaml"', runs[0])
+        self.assertTrue(runs[0].endswith("-type f -print -delete"))
+        self.assertTrue(runs[1].startswith("trivy fs --scanners vuln "))
+        self.assertTrue(runs[1].endswith(" pr/demo/"))
+        self.assertNotIn("--config", runs[1])
+        self.assertNotIn("--ignorefile", runs[1])
+        self.assertEqual(sorted(self.jobs["verify"]["needs"]), ["scan-semgrep", "scan-trivy"])
 
     def test_key_is_only_reachable_in_the_main_restricted_signer(self):
         users = [n for n, j in self.jobs.items() if "GATE_APP_PRIVATE_KEY" in yaml.safe_dump(j)]
