@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   scan-semgrep:
-    name: Semgrep source scan
+    # Preserve the job ID as the GitHub check name: ScanProof matches job names.
     runs-on: ubuntu-latest
     container: semgrep/semgrep:1.181.1
     steps:
