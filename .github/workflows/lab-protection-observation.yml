@@ -61,6 +61,13 @@ jobs:
                   "mergeable_state": obj.get("mergeable_state"),
               }, sort_keys=True))
           PY
+          python scripts/audit_github_gate_trials.py \
+            --repo abdelrahman-eladwy/scanproof-gate-lab \
+            --branch main --check "ScanProof verification" --app-id 15368 \
+            --positive-pr 7 --missing-pr 8 --failed-pr 9 --skipped-pr 10 \
+            --output evidence/pr-trials.json
+          trial_rc=$?
+          echo "TRIAL_OBSERVATION_EXIT=$trial_rc" >> "$GITHUB_STEP_SUMMARY"
           # The result files carry explicit PASS/FAIL/INDETERMINATE.
           # Failures are expected when settings or read permissions are missing.
           exit 0
