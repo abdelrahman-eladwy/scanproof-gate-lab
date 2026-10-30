@@ -30,6 +30,9 @@ class GateDefinitionContract(unittest.TestCase):
 
     def test_real_scanner_job_and_artifact_are_required(self):
         scan = self.workflow["jobs"]["scan-semgrep"]
+        # ScanProof matches the provider-reported job name, not the YAML job ID.
+        # An explicit display name would silently change the provider's name.
+        self.assertNotIn("name", scan)
         self.assertIn("semgrep/semgrep:", scan["container"])
         self.assertIn("semgrep scan", self.workflow_text)
         self.assertIn("gate-lab-semgrep", self.workflow_text)
