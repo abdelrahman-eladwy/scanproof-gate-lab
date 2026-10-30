@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install reviewed ScanProof source revision
-        run: python -m pip install "git+https://github.com/abdelrahman-eladwy/scanproof.git@77dff27934c76e55e5af05c8e7b546fba4ed6e56"
+        run: python -m pip install "git+https://github.com/abdelrahman-eladwy/scanproof.git@0f12c1470b0f84ab0eb18d17ec3a6199eb64943f"
       - name: Verify source evidence for this exact workflow run
         env:
           GITHUB_TOKEN: ${{ github.token }}

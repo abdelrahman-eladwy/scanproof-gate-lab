@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-REVIEWED_SCANPROOF_SHA = "77dff27934c76e55e5af05c8e7b546fba4ed6e56"
+REVIEWED_SCANPROOF_SHA = "0f12c1470b0f84ab0eb18d17ec3a6199eb64943f"
 
 
 class GateDefinitionContract(unittest.TestCase):
@@ -23,7 +23,7 @@ class GateDefinitionContract(unittest.TestCase):
         self.assertEqual(gate["needs"], ["scan-semgrep"])
         self.assertEqual(gate["if"], "${{ always() }}")
         self.assertNotIn("continue-on-error", self.workflow_text)
-        self.assertIn("77dff27934c76e55e5af05c8e7b546fba4ed6e56", self.workflow_text)
+        self.assertIn("0f12c1470b0f84ab0eb18d17ec3a6199eb64943f", self.workflow_text)
         self.assertIn("--pipeline \"$GITHUB_RUN_ID\"", self.workflow_text)
         self.assertIn("-p \"$GITHUB_REPOSITORY\"", self.workflow_text)
         self.assertEqual(len(REVIEWED_SCANPROOF_SHA), 40)
