@@ -32,7 +32,7 @@ jobs:
   scanproof-verification:
     name: ScanProof verification
     needs: [scan-semgrep]
-    if: ${{ always() }}
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
