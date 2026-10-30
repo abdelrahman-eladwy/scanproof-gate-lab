@@ -20,7 +20,9 @@ class GateDefinitionContract(unittest.TestCase):
     def test_stable_gate_job_is_not_optional_or_continue_on_error(self):
         gate = self.workflow["jobs"]["scanproof-verification"]
         self.assertEqual(gate["name"], "ScanProof verification")
-        self.assertEqual(gate["needs"], ["scan-semgrep"])
+        self.assertEqual(
+            sorted(gate["needs"]), sorted(r["job_name"] for r in self.policy["requirements"])
+        )
         self.assertEqual(gate["if"], "${{ always() }}")
         self.assertNotIn("continue-on-error", self.workflow_text)
         self.assertIn("b13f39808d3d23c4a68755544bef468addc3e507", self.workflow_text)
@@ -29,20 +31,28 @@ class GateDefinitionContract(unittest.TestCase):
         self.assertEqual(len(REVIEWED_SCANPROOF_SHA), 40)
 
     def test_real_scanner_job_and_artifact_are_required(self):
-        scan = self.workflow["jobs"]["scan-semgrep"]
-        # ScanProof matches the provider-reported job name, not the YAML job ID.
-        # An explicit display name would silently change the provider's name.
-        self.assertNotIn("name", scan)
-        self.assertIn("semgrep/semgrep:", scan["container"])
-        self.assertIn("semgrep scan", self.workflow_text)
-        self.assertIn("gate-lab-semgrep", self.workflow_text)
-        required = self.policy["requirements"]
-        self.assertEqual(len(required), 1)
-        self.assertEqual(required[0]["tool"], "semgrep")
-        self.assertEqual(required[0]["job_name"], "scan-semgrep")
-        self.assertEqual(required[0]["artifact_name"], "gate-lab-semgrep")
-        self.assertEqual(required[0]["checks"]["scanner_errors_allowed"], 0)
-        self.assertGreaterEqual(required[0]["checks"]["minimum_scanned_files"], 1)
+        # Every policy requirement must be backed by a real scanner job of the same
+        # name that uploads the named artifact. Two scanners prove the gate is not
+        # Semgrep-specific (scanproof#123).
+        required = {r["id"]: r for r in self.policy["requirements"]}
+        self.assertEqual(set(required), {"SAST", "SCA"})
+        expected = {
+            "SAST": ("semgrep", "semgrep/semgrep:", "semgrep scan", "gate-lab-semgrep"),
+            "SCA": ("trivy", "aquasec/trivy:", "trivy fs --scanners vuln", "gate-lab-trivy"),
+        }
+        for rid, (tool, image, command, artifact) in expected.items():
+            req = required[rid]
+            job = self.workflow["jobs"][req["job_name"]]
+            # ScanProof matches the provider-reported job name, not the YAML job ID.
+            # An explicit display name would silently change the provider's name.
+            self.assertNotIn("name", job)
+            self.assertEqual(req["tool"], tool)
+            self.assertIn(image, job["container"])
+            self.assertIn(command, yaml.safe_dump(job))
+            self.assertEqual(req["artifact_name"], artifact)
+            self.assertIn(artifact, yaml.safe_dump(job))
+            self.assertGreaterEqual(req["checks"]["minimum_scanned_files"], 1)
+        self.assertEqual(required["SAST"]["checks"]["scanner_errors_allowed"], 0)
 
     def test_policy_fails_closed_on_unknown_or_missing_evidence(self):
         self.assertEqual(self.policy["enforcement"]["on_unknown"], "block")

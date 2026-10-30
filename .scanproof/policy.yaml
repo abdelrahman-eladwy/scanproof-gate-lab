@@ -14,4 +14,11 @@ requirements:
     checks:
       scanner_errors_allowed: 0
       minimum_scanned_files: 1
+  - id: SCA
+    tool: trivy
+    job_name: scan-trivy
+    artifact_name: gate-lab-trivy
+    report_path: trivy.json
+    checks:
+      minimum_scanned_files: 1
 enforcement: {on_unknown: block, on_nothing_applicable: block}
