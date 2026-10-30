@@ -47,8 +47,13 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr
           persist-credentials: false
+      - name: Neutralise PR-supplied scope narrowing (scanproof#123)
+        # A nested .semgrepignore hides files even with --no-git-ignore (verified
+        # with Semgrep 1.183). Scope is owned by the base branch, never by the PR.
+        run: find pr -name .semgrepignore -type f -print -delete
       - name: Scan PR code with the base branch's rules
-        run: semgrep scan --config .semgrep/rules.yml --metrics=off --json --output semgrep.json pr/demo/
+        # --disable-nosem: inline `# nosemgrep` in PR code must not drop findings.
+        run: semgrep scan --config .semgrep/rules.yml --metrics=off --disable-nosem --json --output semgrep.json pr/demo/
       - name: Upload scan evidence even if the scanner fails
         if: ${{ always() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

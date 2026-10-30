@@ -47,11 +47,22 @@ class SignedGateContract(unittest.TestCase):
     def test_nothing_from_the_pr_is_executed(self):
         scan = self.jobs["scan-semgrep"]
         runs = [s["run"] for s in scan["steps"] if "run" in s]
-        self.assertEqual(len(runs), 1)
-        self.assertTrue(runs[0].startswith("semgrep scan --config .semgrep/rules.yml"))
-        self.assertIn(" pr/demo/", runs[0])
+        self.assertEqual(len(runs), 2)
+        self.assertEqual(runs[0], "find pr -name .semgrepignore -type f -print -delete")
+        self.assertTrue(runs[1].startswith("semgrep scan --config .semgrep/rules.yml"))
+        self.assertIn(" pr/demo/", runs[1])
         for step in scan["steps"]:
             self.assertFalse(str(step.get("uses", "")).startswith("./"))
+
+    def test_pr_cannot_narrow_scan_scope(self):
+        # scanproof#123: nested .semgrepignore hides files; # nosemgrep drops findings.
+        steps = self.jobs["scan-semgrep"]["steps"]
+        names = [s.get("name", "") for s in steps]
+        neutralise = names.index("Neutralise PR-supplied scope narrowing (scanproof#123)")
+        scan = names.index("Scan PR code with the base branch's rules")
+        self.assertLess(neutralise, scan)
+        self.assertIn("--disable-nosem", steps[scan]["run"])
+        self.assertNotIn("--config pr", steps[scan]["run"])
 
     def test_key_is_only_reachable_in_the_main_restricted_signer(self):
         users = [n for n, j in self.jobs.items() if "GATE_APP_PRIVATE_KEY" in yaml.safe_dump(j)]
