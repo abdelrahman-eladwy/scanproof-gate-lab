@@ -1,0 +1,6 @@
+rules:
+  - id: gate-lab-print
+    message: Sacrificial test rule; informational print call
+    severity: INFO
+    languages: [python]
+    pattern: print(...)
